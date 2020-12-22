@@ -1,0 +1,176 @@
+---
+title: "Exam 2020/2021"
+output: html_document
+---
+
+## Intro
+```{r}
+rm(list=ls())
+```
+
+## Load the following libraries
+```{r}
+library(tidyverse)
+```
+
+## Load the data
+```{r}
+setwd("/Users/jonasmikkelsen/Desktop")
+data <- read.csv('vehicles.csv', header=TRUE, na.strings=c(""," ","NA"))
+#data2 <- read.csv('vehicles.csv', header=TRUE)
+```
+
+## Data manipulation
+```{r}
+# Removing variables that we are certain we do not need in the analysis (X, id, 
+# url, region, region_url, VIN, image_url, and description)
+data <- data[,-c(1:5,16,21,22)]
+```
+
+```{r}
+# Inspecting data set
+dim(data)
+str(data)
+class(data)
+summary(data)
+```
+
+```{r}
+# Checking for missing values in variables
+sum(is.na(data$price))
+sum(is.na(data$year))
+sum(is.na(data$manufacturer))
+sum(is.na(data$model))
+sum(is.na(data$condition))
+sum(is.na(data$cylinders))
+sum(is.na(data$fuel))
+sum(is.na(data$odometer))
+sum(is.na(data$title_status))
+sum(is.na(data$transmission))
+sum(is.na(data$drive))
+sum(is.na(data$size)) # many na values in this variable - figure out whether to exclude it completely from data set
+sum(is.na(data$type))
+sum(is.na(data$paint_color))
+sum(is.na(data$state))
+sum(is.na(data$lat))
+sum(is.na(data$long))
+sum(is.na(data$posting_date))
+```
+
+```{r}
+# Removing na values from data set
+data <- na.omit(data)
+```
+
+```{r}
+# Inspecting and manipulating variables - creating factors for some character 
+# variables and excluding outliers
+
+# Price
+summary(data$price)
+sum(data$price > 100000)
+sum(data$price < 100)
+sum(data$price == 0)
+data <- subset(data,data$price < 100000) # removing variables with prices above $100,000
+data <- subset(data,data$price > 100) # removing variables with prices below $100
+
+# Year
+summary(data$year) # Do nothing with this variable
+
+# Manufacturer
+unique(data$manufacturer)
+data$manufacturer = as.factor(data$manufacturer)
+
+# Model
+unique(data$model) # To many different - doesn't make sense to convert to factor?
+
+# Condition
+unique(data$condition)
+data$condition <- as.factor(factor(data$condition, levels = c("salvage", "fair", "good", "excellent", "like new", "new"), ordered = "TRUE"))
+str(data)
+
+##########
+# Cylinders
+unique(data$cylinders)
+data$cylinders <- as.factor(factor(data$cylinders, levels = c("3 cylinders" , "4 cylinders", "5 cylinders", "6 cylinders", "8 cylinders", "10 cylinders", "12 cylinders" ), ordered = "TRUE"))
+sum(is.na(data$cylinders))
+data <- na.omit(data) ####### Remove NA's after they appeared from the category "other"
+###########
+
+# Fuel
+data$fuel <- as.factor(factor(data$fuel, levels = c("gas", "diesel", "other", "hybrid", "electric"), ordered = "FALSE"))
+
+################
+# Odometer
+summary(data$odometer)
+max(data$odometer)
+sum(data$odometer>2000000) # do something about this?
+#################
+
+# Title_status
+unique(data$title_status)
+data$title_status <- as.factor(factor(data$title_status, levels = c("clean", "lien", "missing", "salvage", "rebuilt", "parts only"), ordered = "FALSE"))
+
+# Transmission
+unique(data$transmission)
+data$transmission <- as.factor(data$transmission)
+
+# Drive
+unique(data$drive)
+data$drive <- as.factor(data$drive)
+
+# Size
+unique(data$size)
+data$size <- as.factor(factor(data$size, levels = c("compact", "sub-compact", "mid-size", "full-size"), ordered = "TRUE"))
+
+# Type
+unique(data$type)
+data$type <- as.factor(data$type)
+
+# Paint_color
+unique(data$paint_color)
+data$paint_color <- as.factor(data$paint_color)
+
+# State
+unique(data$state)
+data$state <- as.factor(data$state)
+
+# Lat and long 
+summary(data$lat)
+summary(data$long) # do nothing with these variables
+
+# Posting_date
+
+```
+
+## Descriptive statistics
+```{r}
+# Correlation matrix
+pairs(data)
+pairs(data[-c(4,16:18)])
+plot(data)
+hist(data$price)
+hist(data$year)
+data$cylinders = as.numeric(data$cylinders)
+hist(data$cylinders)
+head(data$cylinders,1000)
+```
+
+
+## Split the data into training set and test set
+```{r}
+
+```
+
+
+```{r}
+# Principal component analysis
+vehicles_pcs = prcomp(na_data2[,c(1,2,8)],scale=FALSE)
+eigen.values=vehicles_pcs$sdev^2
+eigen.values
+summary(vehicles_pcs)
+vehicles_pcs$rotation=-(vehicles_pcs$rotation) # Taking negative as R computes reversed numbers
+vehicles_pcs$rotation
+```
+
+
