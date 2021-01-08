@@ -1,0 +1,371 @@
+---
+title: "Topics in Econometrics - Exam "
+output: html_document
+---
+
+## Intro
+```{r}
+rm(list=ls())
+options(scipen=10) # so that the don't get represented as 1+e05
+```
+
+
+## Load the following libraries
+```{r}
+library(tidyverse)
+library(psych)
+library(stringr)
+library(Metrics)
+library(rsq)
+```
+
+## Load the data
+```{r}
+setwd("/Users/jonasmikkelsen/Desktop")
+data <- read.csv('vehicles.csv', header=TRUE, na.strings=c(""," ","NA"))
+```
+
+## Data manipulation
+```{r}
+data$age <- 2020-data$year
+data <- data[,-c(1:5,7:9,16,18,21:26)]
+data <- na.omit(data)
+
+data <- subset(data,data$price < 100000) 
+data <- subset(data,data$price > 100) 
+data$condition <- as.factor(data$condition)
+data$cylinders <- as.factor(data$cylinders)
+data$fuel <- as.factor(data$fuel)
+data <- subset(data,data$odometer<500000)
+data$title_status <- as.factor(data$title_status)
+data$transmission <- as.factor(data$transmission)
+data$drive <- as.factor(data$drive)
+data$type <- as.factor(data$type)
+data$paint_color <- as.factor(data$paint_color)
+str(data)
+```
+
+## Splitting data set
+```{r}
+## 50% of the sample size
+sample.size <- floor(0.50 * nrow(data))
+
+## set the seed to make your partition reproducible
+set.seed(123)
+splitting <- sample(seq_len(nrow(data)), size = sample.size)
+# Splitting the data into training and test set
+train <- data[splitting, ]
+test <- data[-splitting, ]
+```
+
+## Using only small subset of training set to fit some of the models as they take very long to run (just for now)
+```{r}
+train1 <- train[1:1000,]
+```
+
+## Regression models - simple
+```{r}
+## Multiple linear regression
+lm.fit <- lm(price ~., data=train)
+summary(lm.fit)
+plot(lm.fit)
+
+# Predicting on training set
+lm.pred.train <- predict(lm.fit, train, type="response")
+lm.mse.train <- mse(train$price,lm.pred.train)
+lm.rsqrt.train <- cor(train$price,lm.pred.train)^2
+
+# Predicting on test set
+lm.pred.test <- predict(lm.fit, test, type="response")
+lm.mse.test <- mse(test$price,lm.pred.test)
+lm.rsqrt.test <- cor(test$price,lm.pred.test)^2
+```
+
+## Regression models - with interaction terms
+```{r}
+# Interaction terms
+lm.fit2 <- lm(price ~. + age:odometer + cylinders:odometer + fuel:age
+             + age:cylinders + condition:age, data=train)
+summary(lm.fit2)
+plot(lm.fit2)
+
+# Predicting on trainingset
+lm.pred2.train <- predict(lm.fit2, train, type="response")
+lm2.mse.train <- mse(train$price,lm.pred2.train)
+lm2.rsqrt.train <- cor(train$price,lm.pred2.train)^2
+
+# Predicting on test set
+lm.pred2.test <- predict(lm.fit2, test, type="response")
+lm2.mse.test <- mse(test$price,lm.pred2.test)
+lm2.rsqrt.test <- cor(test$price,lm.pred2.test)^2
+```
+
+## Regression models - with non-linear transformations (polynomial regression)
+```{r}
+# Non-linear transformations of the predictors
+lm.fit3 <- lm(price ~. + poly(age,5) + poly(odometer,5), data=train)
+summary(lm.fit3)
+plot(lm.fit3)
+
+# Predicting on training set
+lm.pred3.train <- predict(lm.fit3, train, type="response")
+lm3.mse.train <- mse(train$price,lm.pred3.train)
+lm3.rsqrt.train <- cor(train$price,lm.pred3.train)^2
+
+# Predicting on test set
+lm.pred3.test <- predict(lm.fit3, test, type="response")
+lm3.mse.test <- mse(test$price,lm.pred3.test)
+lm3.rsqrt.test <- cor(test$price,lm.pred3.test)^2
+```
+
+
+## Regression models - best fit
+```{r}
+# Combining both interaction terms and non-linear transformations
+lm.fit4 <- lm(price ~. + age:odometer + cylinders:odometer + fuel:age
+             + age:cylinders + condition:age + poly(age,5) + poly(odometer,5), data=train)
+summary(lm.fit4)
+plot(lm.fit4)
+
+# Predicting on training set
+lm.pred4.train <- predict(lm.fit4, train, type="response")
+lm4.mse.train <- mse(train$price,lm.pred4.train)
+lm4.rsqrt.train <- cor(train$price,lm.pred4.train)^2
+
+# Predicting on test set
+lm.pred4.test <- predict(lm.fit4, test, type="response")
+lm4.mse.test <- mse(test$price,lm.pred4.test)
+lm4.rsqrt.test <- cor(test$price,lm.pred4.test)^2
+```
+
+## Ridge regression
+```{r}
+library(glmnet)
+# Converting training and test set into a matrix for x values and a vector for y values in order to run the model
+trainX <- model.matrix(price~., data=train)
+testX <- model.matrix(price~., data=test)
+trainY <- train$price
+testY <- test$price
+
+# Using cross-validation in order to determine the optimal lambda value - alpha=0 specifies that we want to perform a ridge regression
+ridge.cv <- cv.glmnet(trainX, trainY, alpha=0)
+plot(ridge.cv)
+ridge.opt.lambda <- ridge.cv$lambda.min
+
+# Fitting the model using the optimal lambda value
+ridge.fit <- glmnet(trainX, trainY, alpha=0, lambda=ridge.opt.lambda)
+
+# Predicting on training set
+ridge.pred.train <- predict(ridge.fit, trainX)
+ridge.mse.train <- mse(trainY,ridge.pred.train)
+ridge.rsqrt.train <- cor(trainY,ridge.pred.train)^2
+
+# Predicting on test set
+ridge.pred.test <- predict(ridge.fit, testX)
+ridge.mse.test <- mse(testY,ridge.pred.test)
+ridge.rsqrt.test <- cor(testY,ridge.pred.test)^2
+
+```
+
+## Lasso
+```{r}
+# Using cross-validation in order to determine the optimal lambda value - alpha=1 specifies that we want to perform a lasso
+lasso.cv <- cv.glmnet(trainX, trainY, alpha=1)
+plot(lasso.cv)
+lasso.opt.lambda <- lasso.cv$lambda.min
+
+# Fitting the model using the optimal lambda value
+lasso.fit <- glmnet(trainX, trainY, alpha=1, lambda=lasso.opt.lambda)
+
+# Predicting on training set
+lasso.pred.train <- predict(lasso.fit, trainX)
+lasso.mse.train <- mse(trainY,lasso.pred.train)
+lasso.rsqrt.train <- cor(trainY,lasso.pred.train)^2
+
+# Predicting on test set
+lasso.pred.test <- predict(lasso.fit, testX)
+lasso.mse.test <- mse(testY,lasso.pred.test)
+lasso.rsqrt.test <- cor(testY,lasso.pred.test)^2
+
+# Comparing results
+shrink.mse.train <- cbind(ridge.mse.train,lasso.mse.train)
+shrink.mse.train
+shrink.rsqrt.train <- cbind(ridge.rsqrt.train,lasso.rsqrt.train)
+shrink.rsqrt.train
+shrink.mse.test <- cbind(ridge.mse.test,lasso.mse.test)
+shrink.mse.test
+shrink.rsqrt.test <- cbind(ridge.rsqrt.test,lasso.rsqrt.test)
+shrink.rsqrt.test
+```
+
+## Regression trees
+```{r} 
+library(tree)
+# Fitting the model
+tree.fit=tree(price ~., data=train)
+summary(tree.fit)
+plot(tree.fit)
+text(tree.fit,pretty=0)
+
+# Predicting on training set
+tree.pred.train <- predict(tree.fit, newdata=train)
+tree.mse.train <- mse(train$price,tree.pred.train)
+tree.rsqrt.train <- cor(train$price,tree.pred.train)^2
+
+# Predicting on test set
+tree.pred.test <- predict(tree.fit, newdata=test)
+tree.mse.test <- mse(test$price,tree.pred.test)
+tree.rsqrt.test <- cor(test$price,tree.pred.test)^2
+```
+
+## Pruning
+```{r}
+# Pruning tree using cross-validation
+cv.fit <- cv.tree(tree.fit)
+
+# Plotting and determining optimal number of splits
+plot(cv.fit$size, cv.fit$dev, type='b')
+min.size <- cv.fit$size[which(cv.fit$dev==min(cv.fit$dev))]
+
+# Fitting the model using optimal number of splits
+prune.fit <- prune.tree(tree.fit, best=min.size)
+plot(prune.fit)
+text(prune.fit, pretty=0)
+
+# Predicting on training set
+prune.pred.train <- predict(prune.fit, newdata=train)
+prune.mse.train <- mse(train$price,prune.pred.train)
+prune.rsqrt.train <- cor(train$price,prune.pred.train)^2
+
+# Predicting on test set
+prune.pred.test <- predict(prune.fit, newdata=test)
+prune.mse.test <- mse(test$price,prune.pred.test)
+prune.rsqrt.test <- cor(test$price,prune.pred.test)^2
+```
+
+## Bagging
+```{r}
+library(randomForest)
+bag.fit <- randomForest(price~., data=train1, mtry=ncol(data)-1, importance=TRUE)
+
+# Predicting on training set
+bag.pred.train <- predict(bag.fit, newdata=train)
+bag.mse.train <- mse(train$price,bag.pred.train)
+bag.rsqrt.train <- cor(train$price,bag.pred.train)^2
+
+# Predicting on test set
+bag.pred.test <- predict(bag.fit, newdata=test)
+bag.mse.test <- mse(test$price,bag.pred.test)
+bag.rsqrt.test <- cor(test$price,bag.pred.test)^2
+
+# Which predictors are most important
+importance(bag.fit)
+varImpPlot(bag.fit,type=2)
+
+```
+
+## Random forest
+```{r}
+library(randomForest)
+# Creating loop in order to fit the model using m=1 to m=10 - that is the full range of possible predictors
+m.grid <- seq(1, 10, by=1)
+n_m <- length(m.grid)
+# Creating lists to store the mean squared error for both training and test set
+rf.train.MSE <- rep(0, n_m)
+rf.test.MSE <- rep(0, n_m)
+for (i in 1:n_m){
+  # Perform random forest
+  rf.fit <- randomForest(price~., data=train1, mtry=m.grid[i], importance=TRUE)
+  # Predict using training set
+  rf.pred.train <- predict(rf.fit, newdata=train)
+  # Predict using test set
+  rf.pred.test <- predict(rf.fit, newdata=test)
+  # Save the MSE for training and test 
+  rf.train.MSE[i] <- mean((rf.pred.train-train$price)^2)
+  rf.test.MSE[i] <- mean((rf.pred.test-test$price)^2)
+}
+rf.train.MSE
+rf.test.MSE
+
+# Plot results and determine m that yields lowest test MSE
+plot(m.grid, rf.train.MSE, type='b', xlab="m Value", ylab="MSE", pch=20)
+plot(m.grid, rf.test.MSE, type='b', xlab="m Value", ylab="MSE", pch=20)
+min.m <- m.grid[which(rf.test.MSE==min(rf.test.MSE))]
+min.m
+
+# Use the m value that yields the lowest test MSE to perform the random forest
+rf.fit.best <- randomForest(price~., data=train1, mtry=min.m, importance=TRUE)
+
+# Predicting on training set
+rf.pred.best.train <- predict(rf.fit.best, newdata=train)
+rf.mse.train <- mse(train$price,rf.pred.best.train)
+rf.rsqrt.train <- cor(train$price,rf.pred.best.train)^2
+
+# Predicting on test set
+rf.pred.best.test <- predict(rf.fit.best, newdata=test)
+rf.mse.test <- mse(test$price,rf.pred.best.test)
+rf.rsqrt.test <- cor(test$price,rf.pred.best.test)^2
+
+```
+
+## Boosting
+```{r}
+library(gbm)
+# Creating loop to fit the model using different values of lambda in order to obtain the best fit
+lambda.grid <- seq(0.0001, 1, by=0.1)
+n_lambda <- length(lambda.grid)
+# Creating lists to store the mean squared error for both training and test set
+boost.train.MSE <- rep(0, n_lambda)
+boost.test.MSE <- rep(0, n_lambda)
+for (i in 1:n_lambda){
+  # Perform boosting
+  boost.fit <- gbm(price~., data=train1, distribution="gaussian", n.trees=1000, shrinkage=lambda.grid[i])
+  # Predict using training set
+  boost.pred.train <- predict(boost.fit, train, n.trees=1000)
+  # Predict using test set
+  boost.pred.test <- predict(boost.fit, test, n.trees=1000)
+  # Save the MSE for training and test
+  boost.train.MSE[i] <- mean((boost.pred.train-train$price)^2)
+  boost.test.MSE[i] <- mean((boost.pred.test-test$price)^2)
+}
+boost.train.MSE
+boost.test.MSE
+
+#Plot the results
+plot(lambda.grid, boost.train.MSE, type='b', xlab="Lambda Value", ylab="MSE", pch=20)
+plot(lambda.grid, boost.test.MSE, type='b', xlab="Lambda Value", ylab="MSE", pch=20)
+min.lambda <- lambda.grid[which(boost.test.MSE==min(boost.test.MSE))]
+min.lambda
+
+#We perform the boosting again, but using our best shrinkage value
+best.boost.fit <- gbm(price~., data=train1, distribution="gaussian", n.trees=1000, shrinkage=min.lambda)
+
+# Predicting on training set
+best.boost.pred.train <- predict(best.boost.fit,newdata=train)
+best.boost.mse.train <- mse(train$price,best.boost.pred.train)
+best.boost.rsqrt.train <- cor(train$price,best.boost.pred.train)^2
+
+# Predicting on test set
+best.boost.pred.test <- predict(best.boost.fit,newdata=test)
+best.boost.mse.test <- mse(test$price,best.boost.pred.test)
+best.boost.rsqrt.test <- cor(test$price,best.boost.pred.test)^2
+
+```
+
+
+
+## Discussion of results
+```{r}
+# Comparing MSE and R^2 from the different methods for both training set and test set
+total.train.mse <- cbind(lm.mse.train, lm2.mse.train, lm3.mse.train, lm4.mse.train, ridge.mse.train, lasso.mse.train, tree.mse.train, prune.mse.train, bag.mse.train, rf.mse.train, best.boost.mse.train)
+total.train.mse
+
+total.train.rsqrt <- cbind(lm.rsqrt.train, lm2.rsqrt.train, lm3.rsqrt.train, lm4.rsqrt.train, ridge.rsqrt.train, lasso.rsqrt.train, tree.rsqrt.train, prune.rsqrt.train, bag.rsqrt.train, rf.rsqrt.train, best.boost.rsqrt.train)
+total.train.rsqrt
+
+total.test.mse <- cbind(lm.mse.test, lm2.mse.test, lm3.mse.test, lm4.mse.test, ridge.mse.test, lasso.mse.test, tree.mse.test, prune.mse.test, bag.mse.test, rf.mse.test, best.boost.mse.test)
+total.test.mse
+
+total.test.rsqrt <- cbind(lm.rsqrt.test, lm2.rsqrt.test, lm3.rsqrt.test, lm4.rsqrt.test, ridge.rsqrt.test, lasso.rsqrt.test, tree.rsqrt.test, prune.rsqrt.test, bag.rsqrt.test, rf.rsqrt.test, best.boost.rsqrt.test)
+total.test.rsqrt
+```
