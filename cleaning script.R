@@ -17,6 +17,11 @@ vdf$fuel <- as.factor(factor(vdf$fuel, levels = c( NA ,"gas", "diesel", "other",
 levels(vdf$fuel)
 #Changing title_status to factor
 vdf$title_status <- as.factor(factor(vdf$title_status, levels = c( NA ,"clean", "lien", "missing", "salvage", "rebuilt", "parts only"), ordered = "FALSE"))
+#changing other variables to factor
+vdf$transmission <- as.factor(vdf$transmission)
+vdf$drive <- as.factor(vdf$drive)
+vdf$type <- as.factor(vdf$type)
+vdf$paint_color <- as.factor(vdf$paint_color)
 #Dropping NA's and filtering out further observations
 dropped <- na.omit(vdf)
 #Filtering out locations outside the UNITED STATES. Creating more accurate observations
@@ -25,10 +30,10 @@ filtered <- dropped %>%
 filtered1 <- dropped %>%         
           filter(lat> 54.622, lat< 71.187, long> -169.150, long< -129.648)          
 filtered2 <- dropped %>% 
-  filter(lat> 54.622, lat< 71.187, long> -169.150, long< -129.648)
+          filter(lat> 18.229, lat< 29.305, long> -179.014, long< -154.345)
 wdata <- rbind(filtered,filtered1,filtered2)
 #creating age variable
 wdata$age <- 2020-wdata$year
 #Creating the csv file, you have to input your own file directory if you do not open it as a project file.
 write.csv(wdata,file= "rawdata/cleaneddata.csv", row.names = FALSE)
-rm(filtered, filtered1, filtered2, dropped, vehicles, vdf)
+rm(filtered, filtered1, filtered2, dropped, vdf)
