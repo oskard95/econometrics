@@ -1,0 +1,91 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+## Descriptive statistics
+```{r}
+## Histograms
+# Year 
+data %>%
+  ggplot(aes(x=reorder(age, price), y=price, fill=age)) + 
+    geom_boxplot() +
+    xlab("age") +
+    theme(legend.position="none") +
+    xlab("")
+
+# Manufacturer
+data %>%
+  ggplot(aes(x=reorder(manufacturer, price), y=price, fill=manufacturer)) + 
+    geom_boxplot() +
+    xlab("manufacturer") +
+    theme(legend.position="none") +
+    xlab("")
+
+# Condition
+data %>%
+  ggplot(aes(x=reorder(condition, price), y=price, fill=condition)) + 
+    geom_boxplot() +
+    xlab("condition") +
+    theme(legend.position="none") +
+    xlab("")
+
+# Cylinders
+data %>%
+  ggplot(aes(x=reorder(cylinders, price), y=price, fill=cylinders)) + 
+    geom_boxplot() +
+    xlab("cylinders") +
+    theme(legend.position="none") +
+    xlab("")
+
+# Fuel 
+data %>%
+  ggplot(aes(x=reorder(fuel, price), y=price, fill=fuel)) + 
+    geom_boxplot() +
+    xlab("fuel") +
+    theme(legend.position="none") +
+    xlab("")
+
+# Odometer 
+# Makes no sense to do histogram of that variable as it is numeric
+
+# Title_status
+data %>%
+  ggplot(aes(x=reorder(title_status, price), y=price, fill=title_status)) + 
+    geom_boxplot() +
+    xlab("title_status") +
+    theme(legend.position="none") +
+    xlab("")
+
+# Transmission
+data %>%
+  ggplot(aes(x=reorder(transmission, price), y=price, fill=transmission)) + 
+    geom_boxplot() +
+    xlab("transmission") +
+    theme(legend.position="none") +
+    xlab("")
+
+# Drive
+data %>%
+  ggplot(aes(x=reorder(drive, price), y=price, fill=drive)) + 
+    geom_boxplot() +
+    xlab("drive") +
+    theme(legend.position="none") +
+    xlab("")
+
+# Type
+data %>%
+  ggplot(aes(x=reorder(type, price), y=price, fill=type)) + 
+    geom_boxplot() +
+    xlab("type") +
+    theme(legend.position="none") +
+    xlab("")
+
+# State
+data %>%
+  ggplot(aes(x=reorder(state, price), y=price, fill=state)) + 
+    geom_boxplot() +
+    xlab("state") +
+    theme(legend.position="none") +
+    xlab("")
+```
